@@ -538,12 +538,12 @@ export default function AdminPage() {
                     <FilterBox 
                       cat={cat} 
                       items={filters.filter(f => f.category === cat.id && f.type === settingsTab)} 
-                      onAdd={async (formData) => { 
+                      onAdd={async (formData: FormData) => { 
                         formData.append('type', settingsTab);
                         await addFilterOption(formData); 
                         refreshData(); 
                       }}
-                      onDelete={async (id) => { if(confirm('Xóa?')){ await deleteFilterOption(id); refreshData(); }}}
+                      onDelete={async (id: string) => { if(confirm('Xóa?')){ await deleteFilterOption(id); refreshData(); }}}
                       onDeleteCategory={async (id: string) => { if(confirm(`Xóa toàn bộ loại bộ lọc "${cat.label}"?`)){ await deleteCategory(id, settingsTab); refreshData(); }}}
                       onUpdateItem={async (id: string, val: string) => { await updateFilterOption(id, val); refreshData(); }}
                       onRenameCategory={async (oldId: string, newLabel: string) => { await renameCategory(oldId, newLabel, settingsTab); refreshData(); }}
