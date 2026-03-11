@@ -1,12 +1,21 @@
 'use server'
 
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 
+console.log("--- ACTIONS LOADED ---")
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn("⚠️ THIẾU CẤU HÌNH SUPABASE TRONG ENV")
+}
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  supabaseUrl || '',
+  supabaseKey || ''
 )
 
 // --- 1. XỬ LÝ ẢNH (DÙNG SUPABASE STORAGE) ---
@@ -143,38 +152,45 @@ export async function updateFilterOrder(categories: string[], type: string) {
 }
 
 export async function getAllAdminData() {
-  const [filters, products, settings, banners, services, processSteps, testimonials] = await Promise.all([
-    prisma.filterOption.findMany({ 
-      orderBy: [
-        { order: 'asc' },
-        { category: 'asc' }
-      ]
-    }),
-    prisma.product.findMany({
-      orderBy: { createdAt: 'desc' }
-    }),
-    prisma.setting.findMany(),
-    prisma.banner.findMany({
-      orderBy: { order: 'asc' }
-    }),
-    prisma.service.findMany({ orderBy: { order: 'asc' } }),
-    prisma.processStep.findMany({ orderBy: { order: 'asc' } }),
-    prisma.testimonial.findMany({ orderBy: { order: 'asc' } })
-  ])
+  console.log("--- ĐANG LẤY DỮ LIỆU ADMIN ---")
+  try {
+    const [filters, products, settings, banners, services, processSteps, testimonials] = await Promise.all([
+      prisma.filterOption.findMany({ 
+        orderBy: [
+          { order: 'asc' },
+          { category: 'asc' }
+        ]
+      }),
+      prisma.product.findMany({
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.setting.findMany(),
+      prisma.banner.findMany({
+        orderBy: { order: 'asc' }
+      }),
+      prisma.service.findMany({ orderBy: { order: 'asc' } }),
+      prisma.processStep.findMany({ orderBy: { order: 'asc' } }),
+      prisma.testimonial.findMany({ orderBy: { order: 'asc' } })
+    ])
+    console.log("--- LẤY DỮ LIỆU THÀNH CÔNG ---")
 
-  const settingsMap: Record<string, string> = {}
-  settings.forEach(s => {
-    settingsMap[s.key] = s.value
-  })
+    const settingsMap: Record<string, string> = {}
+    settings.forEach(s => {
+      settingsMap[s.key] = s.value
+    })
 
-  return {
-    filters,
-    products,
-    settings: settingsMap,
-    banners,
-    services,
-    processSteps,
-    testimonials
+    return {
+      filters,
+      products,
+      settings: settingsMap,
+      banners,
+      services,
+      processSteps,
+      testimonials
+    }
+  } catch (error) {
+    console.error("--- LỖI KHI LẤY DỮ LIỆU ADMIN:", error)
+    throw error
   }
 }
 

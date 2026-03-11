@@ -1,8 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 
-export const dynamic = 'force-dynamic'
-
 import { 
   addProduct, getFilters, addFilterOption, deleteFilterOption, 
   getProducts, deleteProduct, updateFilterOption, renameCategory,
