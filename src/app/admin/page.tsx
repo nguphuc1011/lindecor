@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+
+export const dynamic = 'force-dynamic'
+
 import { 
   addProduct, getFilters, addFilterOption, deleteFilterOption, 
   getProducts, deleteProduct, updateFilterOption, renameCategory,
@@ -57,42 +60,46 @@ export default function AdminPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   const refreshData = async () => {
-    const [filterData, productData, settingsData, bannerData, serviceData, processData, testimonialData] = await Promise.all([
-      getFilters(), 
-      getProducts(),
-      getSettings(),
-      getBanners(),
-      getServices(),
-      getProcessSteps(),
-      getTestimonials()
-    ])
-    setFilters(filterData)
-    setProducts(productData)
-    setSettings(settingsData)
-    setBanners(bannerData)
-    setServices(serviceData)
-    setProcessSteps(processData)
-    setTestimonials(testimonialData)
+    try {
+      const [filterData, productData, settingsData, bannerData, serviceData, processData, testimonialData] = await Promise.all([
+        getFilters(), 
+        getProducts(),
+        getSettings(),
+        getBanners(),
+        getServices(),
+        getProcessSteps(),
+        getTestimonials()
+      ])
+      setFilters(filterData)
+      setProducts(productData)
+      setSettings(settingsData)
+      setBanners(bannerData)
+      setServices(serviceData)
+      setProcessSteps(processData)
+      setTestimonials(testimonialData)
 
-    // Xác định type hiện tại dựa trên menu đang đứng
-    const currentType = activeMenu === 'settings' 
-      ? settingsTab 
-      : (activeMenu === 'designs' ? 'template' : 'retail')
+      // Xác định type hiện tại dựa trên menu đang đứng
+      const currentType = activeMenu === 'settings' 
+        ? settingsTab 
+        : (activeMenu === 'designs' ? 'template' : 'retail')
 
-    // Xử lý danh sách category từ filterData theo type đang chọn
-    const currentTypeFilters = filterData.filter((f: any) => f.type === currentType)
-    const uniqueCats = Array.from(new Set(currentTypeFilters.map((f: any) => f.category)))
-    const cats = uniqueCats.map(catId => {
-      const config = categoryIcons[catId] || { 
-        label: catId, 
-        icon: <Layers size={18}/>, 
-        color: 'text-slate-600', 
-        bg: 'bg-slate-100' 
-      }
-      return { id: catId, ...config }
-    })
-    
-    setCategories(cats)
+      // Xử lý danh sách category từ filterData theo type đang chọn
+      const currentTypeFilters = filterData.filter((f: any) => f.type === currentType)
+      const uniqueCats = Array.from(new Set(currentTypeFilters.map((f: any) => f.category)))
+      const cats = uniqueCats.map(catId => {
+        const config = categoryIcons[catId] || { 
+          label: catId, 
+          icon: <Layers size={18}/>, 
+          color: 'text-slate-600', 
+          bg: 'bg-slate-100' 
+        }
+        return { id: catId, ...config }
+      })
+      
+      setCategories(cats)
+    } catch (err) {
+      console.error("Lỗi khi tải dữ liệu:", err)
+    }
   }
 
   const categoryIcons: any = {
@@ -708,20 +715,26 @@ export default function AdminPage() {
                     </p>
                     <form onSubmit={async (e) => {
                       e.preventDefault()
-                      const formData = new FormData(e.currentTarget)
+                      const file = (e.currentTarget.elements.namedItem('logo') as HTMLInputElement).files?.[0]
+                      if (!file) return
+                      
+                      const formData = new FormData()
+                      formData.append('logo', file)
+                      
                       setIsSubmitting(true)
                       try {
                         await uploadLogo(formData)
                         alert('Đã cập nhật Logo!')
                         refreshData()
                       } catch (err) {
-                        alert('Lỗi')
+                        console.error("Lỗi upload logo:", err)
+                        alert('Lỗi khi tải Logo lên!')
                       } finally {
                         setIsSubmitting(false)
                       }
                     }} className="flex flex-col gap-4">
                       <input type="file" name="logo" accept="image/*" className="hidden" id="logo-upload" onChange={(e) => {
-                        if(e.target.files?.[0]) e.currentTarget.form?.requestSubmit()
+                        if(e.target.files?.[0]) e.currentTarget.form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
                       }} />
                       <button 
                         type="button"
