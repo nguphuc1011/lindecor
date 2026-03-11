@@ -127,20 +127,27 @@ export default function AdminPage() {
       formData.append('type', activeMenu === 'designs' ? 'template' : 'retail')
       if (selectedFile) formData.set('file', selectedFile)
       
+      let result
       if (editingProduct) {
         formData.append('id', editingProduct.id)
         formData.append('currentImageUrl', editingProduct.imageUrl)
-        await updateProduct(formData)
+        result = await updateProduct(formData)
       } else {
-        await addProduct(formData)
+        result = await addProduct(formData)
       }
       
-      setIsModalOpen(false)
-      setEditingProduct(null)
-      setSelectedFile(null)
-      await refreshData()
+      if (result?.success) {
+        setIsModalOpen(false)
+        setEditingProduct(null)
+        setSelectedFile(null)
+        await refreshData()
+        alert(editingProduct ? 'Đã cập nhật!' : 'Đã thêm mới!')
+      } else {
+        alert('Lỗi: ' + (result?.error || 'Không xác định'))
+      }
     } catch (err) {
-      alert('Lỗi đăng tải')
+      console.error('Lỗi khi xử lý sản phẩm:', err)
+      alert('Lỗi hệ thống khi đăng tải')
     } finally {
       setIsSubmitting(false)
     }
@@ -723,11 +730,16 @@ export default function AdminPage() {
                       
                       setIsSubmitting(true)
                       try {
-                        await uploadLogo(formData)
-                        alert('Đã cập nhật Logo!')
-                        refreshData()
+                        const result = await uploadLogo(formData)
+                        if (result?.success) {
+                          alert('Đã cập nhật Logo!')
+                          refreshData()
+                        } else {
+                          console.error("Lỗi từ server action:", result?.error)
+                          alert('Lỗi: ' + (result?.error || 'Không xác định'))
+                        }
                       } catch (err) {
-                        console.error("Lỗi upload logo:", err)
+                        console.error("Lỗi upload logo (catch):", err)
                         alert('Lỗi khi tải Logo lên!')
                       } finally {
                         setIsSubmitting(false)
@@ -825,19 +837,28 @@ export default function AdminPage() {
               try {
                 const formData = new FormData(e.currentTarget)
                 if (selectedBannerFile) formData.set('image', selectedBannerFile)
+                
+                let result
                 if (editingBanner) {
                   formData.append('id', editingBanner.id)
                   formData.append('currentImageUrl', editingBanner.imageUrl)
-                  await updateBanner(formData)
+                  result = await updateBanner(formData)
                 } else {
-                  await addBanner(formData)
+                  result = await addBanner(formData)
                 }
-                setIsBannerModalOpen(false)
-                setEditingBanner(null)
-                setSelectedBannerFile(null)
-                await refreshData()
+
+                if (result?.success) {
+                  setIsBannerModalOpen(false)
+                  setEditingBanner(null)
+                  setSelectedBannerFile(null)
+                  await refreshData()
+                  alert(editingBanner ? 'Đã cập nhật banner!' : 'Đã thêm banner mới!')
+                } else {
+                  alert('Lỗi: ' + (result?.error || 'Không xác định'))
+                }
               } catch (err: any) {
-                alert(err.message || 'Lỗi xử lý banner')
+                console.error('Lỗi banner:', err)
+                alert('Lỗi hệ thống khi xử lý banner')
               } finally {
                 setIsSubmitting(false)
               }
@@ -918,17 +939,31 @@ export default function AdminPage() {
             onSubmit={async (e) => {
               e.preventDefault()
               setIsSubmitting(true)
-              const formData = new FormData(e.currentTarget)
-              if (editingService) {
-                formData.append('id', editingService.id)
-                formData.append('currentImageUrl', editingService.imageUrl || '')
+              try {
+                const formData = new FormData(e.currentTarget)
+                if (editingService) {
+                  formData.append('id', editingService.id)
+                  formData.append('currentImageUrl', editingService.imageUrl || '')
+                }
+                if (selectedServiceFile) formData.set('image', selectedServiceFile)
+                
+                const result = await upsertService(formData)
+                
+                if (result?.success) {
+                  setIsServiceModalOpen(false)
+                  setSelectedServiceFile(null)
+                  setEditingService(null)
+                  await refreshData()
+                  alert('Đã lưu dịch vụ!')
+                } else {
+                  alert('Lỗi: ' + (result?.error || 'Không xác định'))
+                }
+              } catch (err) {
+                console.error('Lỗi dịch vụ:', err)
+                alert('Lỗi hệ thống khi lưu dịch vụ')
+              } finally {
+                setIsSubmitting(false)
               }
-              if (selectedServiceFile) formData.set('image', selectedServiceFile)
-              await upsertService(formData)
-              setIsServiceModalOpen(false)
-              setSelectedServiceFile(null)
-              refreshData()
-              setIsSubmitting(false)
             }}
             className="relative bg-white w-full max-w-lg rounded-[2.5rem] p-8 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200"
           >

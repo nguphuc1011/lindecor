@@ -28,6 +28,17 @@ async function saveImage(file: File) {
     
     console.log("Đang upload ảnh lên Supabase:", filename)
 
+    // Kiểm tra xem bucket có tồn tại không
+    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets()
+    if (bucketError) {
+      console.error("Lỗi liệt kê bucket:", bucketError)
+    } else {
+      const exists = buckets.find(b => b.name === 'images')
+      if (!exists) {
+        throw new Error("Bucket 'images' chưa được tạo trong Supabase Storage. Hãy tạo bucket tên là 'images' và để chế độ Public.")
+      }
+    }
+
     const { data, error } = await supabase.storage
       .from('images')
       .upload(filename, bytes, {
@@ -38,7 +49,7 @@ async function saveImage(file: File) {
 
     if (error) {
       console.error("Lỗi upload Supabase chi tiết:", error)
-      throw error
+      throw new Error(`Lỗi Supabase Storage: ${error.message || 'Không xác định'}. Hãy kiểm tra xem bucket 'images' đã được tạo chưa?`)
     }
 
     const { data: { publicUrl } } = supabase.storage
@@ -247,9 +258,10 @@ export async function addProduct(formData: FormData) {
     })
     revalidatePath('/admin')
     revalidatePath('/')
-  } catch (error) {
+    return { success: true }
+  } catch (error: any) {
     console.error("Lỗi khi lưu Database:", error)
-    throw new Error("Không thể lưu dữ liệu.")
+    return { success: false, error: error.message || "Không thể lưu dữ liệu sản phẩm" }
   }
 }
 
@@ -302,9 +314,10 @@ export async function updateProduct(formData: FormData) {
 
     revalidatePath('/admin')
     revalidatePath('/')
-  } catch (error) {
+    return { success: true }
+  } catch (error: any) {
     console.error("Lỗi khi cập nhật Database:", error)
-    throw new Error("Không thể cập nhật dữ liệu.")
+    return { success: false, error: error.message || "Không thể cập nhật dữ liệu sản phẩm" }
   }
 }
 
@@ -342,27 +355,49 @@ export async function updateSettings(data: Record<string, string>) {
 }
 
 export async function uploadLogo(formData: FormData) {
-  const file = formData.get('logo') as File
-  console.log("Đang upload logo, file:", file?.name, "size:", file?.size)
-  if (!file || file.size === 0) {
-    console.warn("Không tìm thấy file logo trong formData")
-    return
+  try {
+    const file = formData.get('logo') as File
+    console.log("--- BẮT ĐẦU UPLOAD LOGO ---")
+    console.log("File:", file?.name, "Size:", file?.size)
+
+    if (!file || file.size === 0) {
+      return { success: false, error: "Không tìm thấy file logo" }
+    }
+    
+    const logoUrl = await saveImage(file)
+    console.log("--- LƯU ẢNH THÀNH CÔNG, CẬP NHẬT SETTING ---")
+    
+    await updateSetting('logo', logoUrl)
+    
+    revalidatePath('/admin')
+    revalidatePath('/')
+    
+    return { success: true, url: logoUrl }
+  } catch (error: any) {
+    console.error("--- LỖI UPLOAD LOGO CỰC CHI TIẾT:", error)
+    return { 
+      success: false, 
+      error: error.message || "Lỗi không xác định khi upload logo" 
+    }
   }
-  
-  const logoUrl = await saveImage(file)
-  console.log("Logo đã lưu, cập nhật setting:", logoUrl)
-  await updateSetting('logo', logoUrl)
-  return logoUrl
 }
 
 export async function uploadBannerImage(formData: FormData) {
-  const file = formData.get('bannerImageFile') as File
-  if (!file || file.size === 0) return
-  
-  const bannerUrl = await saveImage(file)
-  // Note: This is for general settings banner, we might want to keep it or transition to the Banner model
-  await updateSetting('bannerImage', bannerUrl)
-  return bannerUrl
+  try {
+    const file = formData.get('bannerImageFile') as File
+    if (!file || file.size === 0) return { success: false, error: "Không tìm thấy file banner" }
+    
+    const bannerUrl = await saveImage(file)
+    await updateSetting('bannerImage', bannerUrl)
+    
+    revalidatePath('/admin')
+    revalidatePath('/')
+    
+    return { success: true, url: bannerUrl }
+  } catch (error: any) {
+    console.error("Lỗi upload banner setting:", error)
+    return { success: false, error: error.message }
+  }
 }
 
 // --- 5. QUẢN LÝ SLIDE BANNER ---
@@ -373,47 +408,59 @@ export async function getBanners() {
 }
 
 export async function addBanner(formData: FormData) {
-  const file = formData.get('image') as File
-  if (!file || file.size === 0) throw new Error("Vui lòng chọn ảnh banner")
-  
-  const imageUrl = await saveImage(file)
-  
-  await prisma.banner.create({
-    data: {
-      title: formData.get('title') as string,
-      description: formData.get('description') as string,
-      imageUrl: imageUrl,
-      buttonText: formData.get('buttonText') as string || "Xem chi tiết",
-      buttonLink: formData.get('buttonLink') as string || "/",
-      order: parseInt(formData.get('order') as string) || 0
-    }
-  })
-  revalidatePath('/')
-  revalidatePath('/admin')
+  try {
+    const file = formData.get('image') as File
+    if (!file || file.size === 0) return { success: false, error: "Vui lòng chọn ảnh banner" }
+    
+    const imageUrl = await saveImage(file)
+    
+    await prisma.banner.create({
+      data: {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        imageUrl: imageUrl,
+        buttonText: formData.get('buttonText') as string || "Xem chi tiết",
+        buttonLink: formData.get('buttonLink') as string || "/",
+        order: parseInt(formData.get('order') as string) || 0
+      }
+    })
+    revalidatePath('/')
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Lỗi khi thêm banner:", error)
+    return { success: false, error: error.message || "Không thể thêm banner" }
+  }
 }
 
 export async function updateBanner(formData: FormData) {
-  const id = formData.get('id') as string
-  const file = formData.get('image') as File
-  let imageUrl = formData.get('currentImageUrl') as string
+  try {
+    const id = formData.get('id') as string
+    const file = formData.get('image') as File
+    let imageUrl = formData.get('currentImageUrl') as string
 
-  if (file && file.size > 0) {
-    imageUrl = await saveImage(file)
-  }
-
-  await prisma.banner.update({
-    where: { id },
-    data: {
-      title: formData.get('title') as string,
-      description: formData.get('description') as string,
-      imageUrl: imageUrl,
-      buttonText: formData.get('buttonText') as string,
-      buttonLink: formData.get('buttonLink') as string,
-      order: parseInt(formData.get('order') as string) || 0
+    if (file && file.size > 0) {
+      imageUrl = await saveImage(file)
     }
-  })
-  revalidatePath('/')
-  revalidatePath('/admin')
+
+    await prisma.banner.update({
+      where: { id },
+      data: {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        imageUrl: imageUrl,
+        buttonText: formData.get('buttonText') as string,
+        buttonLink: formData.get('buttonLink') as string,
+        order: parseInt(formData.get('order') as string) || 0
+      }
+    })
+    revalidatePath('/')
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Lỗi khi cập nhật banner:", error)
+    return { success: false, error: error.message || "Không thể cập nhật banner" }
+  }
 }
 
 export async function deleteBanner(id: string) {
@@ -428,29 +475,35 @@ export async function getServices() {
 }
 
 export async function upsertService(formData: FormData) {
-  const id = formData.get('id') as string
-  const file = formData.get('image') as File
-  let imageUrl = formData.get('currentImageUrl') as string
+  try {
+    const id = formData.get('id') as string
+    const file = formData.get('image') as File
+    let imageUrl = formData.get('currentImageUrl') as string
 
-  if (file && file.size > 0) {
-    imageUrl = await saveImage(file)
-  }
+    if (file && file.size > 0) {
+      imageUrl = await saveImage(file)
+    }
 
-  const data = {
-    title: formData.get('title') as string,
-    description: formData.get('description') as string,
-    imageUrl: imageUrl,
-    iconName: formData.get('iconName') as string,
-    order: parseInt(formData.get('order') as string) || 0
+    const data = {
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      imageUrl: imageUrl,
+      iconName: formData.get('iconName') as string,
+      order: parseInt(formData.get('order') as string) || 0
+    }
+    
+    if (id) {
+      await prisma.service.update({ where: { id }, data })
+    } else {
+      await prisma.service.create({ data })
+    }
+    revalidatePath('/')
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Lỗi khi xử lý dịch vụ:", error)
+    return { success: false, error: error.message || "Không thể lưu dịch vụ" }
   }
-  
-  if (id) {
-    await prisma.service.update({ where: { id }, data })
-  } else {
-    await prisma.service.create({ data })
-  }
-  revalidatePath('/')
-  revalidatePath('/admin')
 }
 
 export async function deleteService(id: string) {
