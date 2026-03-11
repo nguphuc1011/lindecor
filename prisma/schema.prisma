@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  code        String?  @unique // Mã mẫu tự động (VD: TC555)
+  description String?
+  price       Float
+  imageUrl    String?
+  category    String?
+  type        String?  // mẫu thiết kế/ấn phẩm
+  theme       String?
+  gender      String?
+  ageRange    String?
+  location    String?
+  space       String?
+  scale       String?
+  color       String?
+  priceRange  String?
+  filterData  String?  // Lưu TẤT CẢ các bộ lọc dưới dạng JSON string ( theme, color, ... )
+  createdAt   DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model Banner {
+  id          String   @id @default(cuid())
+  title       String?
+  description String?
+  imageUrl    String
+  buttonText  String?  @default("Xem chi tiết")
+  buttonLink  String?  @default("/")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Service {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?
+  iconName    String? // Lucide icon name
+  order       Int     @default(0)
+}
+
+model Testimonial {
+  id         String  @id @default(cuid())
+  clientName String
+  content    String
+  avatarUrl  String?
+  eventType  String? // VD: Tiệc cưới, Sinh nhật
+  order      Int     @default(0)
+}
+
+model ProcessStep {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  order       Int     @default(0)
+}
+
+model FilterOption {
+  id       String @id @default(cuid())
+  category String // theme, color, gender, etc.
+  value    String
+  order    Int    @default(0)
+  type     String @default("template") // template hoặc retail
+}
+
+model Order {
+  id           String   @id @default(cuid())
+  customerName String
+  phone        String
+  address      String
+  status       String   @default("PENDING")
+  totalAmount  Float
+  createdAt    DateTime @default(now())
+}
+
+model DesignTemplate {
+  id          String @id @default(cuid())
+  title       String
+  previewUrl  String
+  authorName  String
+  description String?
+}
