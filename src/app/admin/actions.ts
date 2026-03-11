@@ -17,15 +17,18 @@ async function saveImage(file: File) {
     const bytes = await file.arrayBuffer()
     const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`
     
+    console.log("Đang upload ảnh lên Supabase:", filename)
+
     const { data, error } = await supabase.storage
       .from('images')
       .upload(filename, bytes, {
         contentType: file.type,
+        cacheControl: '3600',
         upsert: true
       })
 
     if (error) {
-      console.error("Lỗi upload Supabase:", error)
+      console.error("Lỗi upload Supabase chi tiết:", error)
       throw error
     }
 
@@ -33,10 +36,11 @@ async function saveImage(file: File) {
       .from('images')
       .getPublicUrl(filename)
 
+    console.log("Upload thành công, publicUrl:", publicUrl)
     return publicUrl
   } catch (err) {
     console.error("Lỗi xử lý ảnh:", err)
-    return '/placeholder.png'
+    throw err // Ném lỗi để frontend bắt được
   }
 }
 
@@ -287,9 +291,14 @@ export async function updateSettings(data: Record<string, string>) {
 
 export async function uploadLogo(formData: FormData) {
   const file = formData.get('logo') as File
-  if (!file || file.size === 0) return
+  console.log("Đang upload logo, file:", file?.name, "size:", file?.size)
+  if (!file || file.size === 0) {
+    console.warn("Không tìm thấy file logo trong formData")
+    return
+  }
   
   const logoUrl = await saveImage(file)
+  console.log("Logo đã lưu, cập nhật setting:", logoUrl)
   await updateSetting('logo', logoUrl)
   return logoUrl
 }
