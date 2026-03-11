@@ -1,6 +1,8 @@
 import { getProducts, getFilters, getSettings, getBanners, getServices, getProcessSteps, getTestimonials } from './admin/actions'
 import ClientHome from '@/components/ClientHome'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
   const [products, filters, settings, banners, services, processSteps, testimonials] = await Promise.all([
     getProducts(),
