@@ -521,7 +521,7 @@ export default function ClientHome({ initialProducts, initialFilters, settings, 
               <Link href={settings.instagram || "#"} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-indigo-600 transition-all"><Instagram size={18}/></Link>
               <Link href={settings.tiktok || "#"} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-indigo-600 transition-all"><Music2 size={18}/></Link>
               {settings.zalo && (
-                <Link href={`https://zalo.me/${settings.zalo}`} target="_blank" className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-blue-500 transition-all">
+                <Link href={`https://zalo.me/${(settings.zalo || settings.phone || '').replace(/\D/g, '')}`} target="_blank" className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-blue-500 transition-all">
                   <MessageCircle size={18}/>
                 </Link>
               )}
@@ -641,7 +641,7 @@ export default function ClientHome({ initialProducts, initialFilters, settings, 
 
               <div className="pt-8 mt-auto">
                 <Link 
-                  href={`https://zalo.me/${settings.zalo || settings.phone || ''}`}
+                  href={`https://zalo.me/${(settings.zalo || settings.phone || '').replace(/\D/g, '')}`}
                   target="_blank"
                   className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all shadow-xl active:scale-95"
                 >
