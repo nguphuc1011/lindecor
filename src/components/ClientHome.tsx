@@ -10,7 +10,7 @@ import {
 import Link from 'next/link'
 
 function getTagsFromProduct(item: any) {
-  const tags: { label: string, color: string }[] = []
+  const tags: { label: string, color: string, category: string }[] = []
   
   if (item.filterData) {
     try {
