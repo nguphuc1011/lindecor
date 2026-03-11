@@ -123,7 +123,22 @@ export default function AdminPage() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      const formData = new FormData(e.currentTarget)
+      const formElement = e.currentTarget
+      const formData = new FormData(formElement)
+      
+      // Xử lý thủ công checkbox vì FormData.getAll có thể không ổn định với checkbox động
+      const allFilters = filters.filter(f => f.type === (activeMenu === 'designs' ? 'template' : 'retail'))
+      const filterCategories = Array.from(new Set(allFilters.map(f => f.category)))
+      
+      filterCategories.forEach(catId => {
+        const checkedInputs = formElement.querySelectorAll(`input[name="${catId}"]:checked`)
+        const values = Array.from(checkedInputs).map((input: any) => input.value)
+        
+        // Xóa giá trị cũ trong formData và set lại cho chắc
+        formData.delete(catId)
+        values.forEach(val => formData.append(catId, val))
+      })
+
       formData.append('type', activeMenu === 'designs' ? 'template' : 'retail')
       if (selectedFile) formData.set('file', selectedFile)
       
@@ -1241,6 +1256,8 @@ function MultiSelectField({ label, name, options, defaultValue = "" }: { label: 
         ))}
         {options.length === 0 && <span className="text-[10px] font-bold text-slate-300 italic">Chưa có dữ liệu bộ lọc...</span>}
       </div>
+      {/* Hidden input to ensure field is always sent even if no checkboxes are checked */}
+      <input type="hidden" name={`_exists_${name}`} value="true" />
     </div>
   )
 }
