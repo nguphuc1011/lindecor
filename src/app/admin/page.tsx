@@ -11,7 +11,8 @@ import {
   getBanners, addBanner, updateBanner, deleteBanner,
   getServices, upsertService, deleteService,
   getProcessSteps, upsertProcessStep, deleteProcessStep,
-  getTestimonials, upsertTestimonial, deleteTestimonial
+  getTestimonials, upsertTestimonial, deleteTestimonial,
+  getAllAdminData
 } from './actions'
 import { 
   Settings, Plus, X, Camera, ShoppingBag, 
@@ -61,15 +62,16 @@ export default function AdminPage() {
 
   const refreshData = async () => {
     try {
-      const [filterData, productData, settingsData, bannerData, serviceData, processData, testimonialData] = await Promise.all([
-        getFilters(), 
-        getProducts(),
-        getSettings(),
-        getBanners(),
-        getServices(),
-        getProcessSteps(),
-        getTestimonials()
-      ])
+      const { 
+        filters: filterData, 
+        products: productData, 
+        settings: settingsData, 
+        banners: bannerData, 
+        services: serviceData, 
+        processSteps: processData, 
+        testimonials: testimonialData 
+      } = await getAllAdminData()
+
       setFilters(filterData)
       setProducts(productData)
       setSettings(settingsData)

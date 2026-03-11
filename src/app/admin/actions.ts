@@ -142,6 +142,42 @@ export async function updateFilterOrder(categories: string[], type: string) {
   revalidatePath('/admin')
 }
 
+export async function getAllAdminData() {
+  const [filters, products, settings, banners, services, processSteps, testimonials] = await Promise.all([
+    prisma.filterOption.findMany({ 
+      orderBy: [
+        { order: 'asc' },
+        { category: 'asc' }
+      ]
+    }),
+    prisma.product.findMany({
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.setting.findMany(),
+    prisma.banner.findMany({
+      orderBy: { order: 'asc' }
+    }),
+    prisma.service.findMany({ orderBy: { order: 'asc' } }),
+    prisma.processStep.findMany({ orderBy: { order: 'asc' } }),
+    prisma.testimonial.findMany({ orderBy: { order: 'asc' } })
+  ])
+
+  const settingsMap: Record<string, string> = {}
+  settings.forEach(s => {
+    settingsMap[s.key] = s.value
+  })
+
+  return {
+    filters,
+    products,
+    settings: settingsMap,
+    banners,
+    services,
+    processSteps,
+    testimonials
+  }
+}
+
 export async function getFilters() {
   return await prisma.filterOption.findMany({ 
     orderBy: [
