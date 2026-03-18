@@ -1,19 +1,13 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Search, ShoppingBag, ArrowRight, Home, Zap, Phone, Package } from 'lucide-react'
+import { useState } from 'react'
+import { Search, ShoppingBag, ArrowRight, Phone, Package } from 'lucide-react'
 import Link from 'next/link'
+import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 
 export default function ShopClient({ initialProducts, settings, categories }: any) {
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [isScrolled, setIsScrolled] = useState(false)
-
-  // Xử lý hiệu ứng cuộn cho Header
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const filteredProducts = initialProducts.filter((p: any) => {
     const matchCat = activeCategory === 'all' || p.category === activeCategory
@@ -23,28 +17,7 @@ export default function ShopClient({ initialProducts, settings, categories }: an
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 selection:bg-indigo-100">
-      
-      {/* HEADER */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 px-8 py-4 transition-all duration-500 ${isScrolled ? 'bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm' : 'bg-transparent'}`}>
-        <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-3 group">
-            {settings.logo ? (
-              <img src={settings.logo} alt="LinDecor" className={`h-12 w-auto object-contain transition-all ${!isScrolled ? 'brightness-0 invert' : ''}`} />
-            ) : (
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isScrolled ? 'bg-slate-900 text-white' : 'bg-white/20 text-white backdrop-blur-md'}`}>
-                <Zap size={20} />
-              </div>
-            )}
-            <span className={`font-black uppercase tracking-tighter text-lg hidden md:block ${isScrolled ? 'text-slate-900' : 'text-white'}`}>LinDecor</span>
-          </Link>
-
-          <div className="flex items-center gap-6">
-            <Link href="/" className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${isScrolled ? 'text-slate-500 hover:text-indigo-600' : 'text-white/80 hover:text-white'}`}>
-              <Home size={14} /> Về trang chủ
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar settings={settings} />
 
       {/* HERO SECTION */}
       <section className="relative pt-32 pb-20 px-6 bg-slate-900 overflow-hidden">
@@ -198,6 +171,7 @@ export default function ShopClient({ initialProducts, settings, categories }: an
         </div>
       </section>
 
+      <Footer settings={settings} />
     </div>
   )
 }
