@@ -191,7 +191,7 @@ export default function ClientHome({ initialProducts, initialFilters, settings, 
             {/* TABS */}
             <div className={`hidden md:flex items-center gap-8 text-[14px] font-bold uppercase tracking-[0.1em] transition-colors ${isScrolled ? 'text-slate-500' : 'text-white/90'}`}>
               <button onClick={() => { setActiveTab('template'); setFilterValues({}); }} className={`transition-all hover:text-indigo-600 ${activeTab === 'template' ? (isScrolled ? 'text-indigo-600' : 'text-white') : ''}`}>Mẫu Decor</button>
-              <button onClick={() => { setActiveTab('retail'); setFilterValues({}); }} className={`transition-all hover:text-indigo-600 ${activeTab === 'retail' ? (isScrolled ? 'text-indigo-600' : 'text-white') : ''}`}>Ấn phẩm Shop</button>
+              <Link href="/shop" className="transition-all hover:text-indigo-600">Ấn phẩm Shop</Link>
             </div>
 
             <div className={`hidden md:block h-4 w-px ${isScrolled ? 'bg-slate-200' : 'bg-white/30'}`}></div>
