@@ -16,7 +16,8 @@ model Product {
   name        String
   code        String?  @unique // Mã mẫu tự động (VD: TC555)
   description String?
-  price       Float
+  price       Int      @default(0)
+  stock       Boolean  @default(true)
   imageUrl    String?
   category    String?
   type        String?  // mẫu thiết kế/ấn phẩm
@@ -79,6 +80,13 @@ model FilterOption {
   value    String
   order    Int    @default(0)
   type     String @default("template") // template hoặc retail
+}
+
+model ShopCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
 }
 
 model Order {

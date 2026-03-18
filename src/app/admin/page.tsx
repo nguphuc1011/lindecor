@@ -10,19 +10,22 @@ import {
   getServices, upsertService, deleteService,
   getProcessSteps, upsertProcessStep, deleteProcessStep,
   getTestimonials, upsertTestimonial, deleteTestimonial,
-  getAllAdminData
+  getAllAdminData,
+  addShopCategory,
+  updateShopCategory,
+  deleteShopCategory
 } from './actions'
 import { 
-  Settings, Plus, X, Camera, ShoppingBag, 
+  Plus, X, Camera, 
   Layers, Filter, Trash2, PlusCircle, 
   ChevronRight, Sparkles, Layout, Palette, 
   MapPin, Users, Tag, Info, UploadCloud, CheckCircle2,
-  LayoutGrid, Package, Sliders, Edit3, Check, GripVertical, Pencil,
+  LayoutGrid, Package, Edit3, Check, GripVertical, Pencil,
   Globe, Image as ImageIcon, Heart, MessageSquare, ClipboardList,
   Mail, Phone, Facebook, Instagram, Music2, List, Grid, Search, MessageCircle
 } from 'lucide-react'
 
-type Tab = 'designs' | 'retail' | 'settings' | 'general' | 'banners' | 'content'
+type Tab = 'designs' | 'retail' | 'general' | 'banners' | 'content'
 
 export default function AdminPage() {
   const [activeMenu, setActiveTab] = useState<Tab>('designs')
@@ -34,6 +37,7 @@ export default function AdminPage() {
   const [processSteps, setProcessSteps] = useState<any[]>([])
   const [testimonials, setTestimonials] = useState<any[]>([])
   const [settings, setSettings] = useState<Record<string, string>>({})
+  const [shopCategories, setShopCategories] = useState<any[]>([])
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false)
@@ -53,7 +57,8 @@ export default function AdminPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(null)
   const [selectedServiceFile, setSelectedServiceFile] = useState<File | null>(null)
-  const [settingsTab, setSettingsTab] = useState<'template' | 'retail'>('template')
+  const [designTab, setDesignTab] = useState<'products' | 'filters'>('products')
+  const [retailTab, setRetailTab] = useState<'products' | 'filters' | 'categories'>('products')
   const [filterValues, setFilterValues] = useState<Record<string, string>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -67,7 +72,8 @@ export default function AdminPage() {
         banners: bannerData, 
         services: serviceData, 
         processSteps: processData, 
-        testimonials: testimonialData 
+        testimonials: testimonialData,
+        shopCategories: shopCategoryData
       } = await getAllAdminData()
 
       setFilters(filterData)
@@ -77,11 +83,10 @@ export default function AdminPage() {
       setServices(serviceData)
       setProcessSteps(processData)
       setTestimonials(testimonialData)
+      setShopCategories(shopCategoryData)
 
       // Xác định type hiện tại dựa trên menu đang đứng
-      const currentType = activeMenu === 'settings' 
-        ? settingsTab 
-        : (activeMenu === 'designs' ? 'template' : 'retail')
+      const currentType = activeMenu === 'retail' ? 'retail' : 'template'
 
       // Xử lý danh sách category từ filterData theo type đang chọn
       const currentTypeFilters = filterData.filter((f: any) => f.type === currentType)
@@ -113,7 +118,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     refreshData()
-  }, [settingsTab, activeMenu])
+  }, [activeMenu])
 
   const formRef = useRef<HTMLFormElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -229,7 +234,8 @@ export default function AdminPage() {
     if (draggedIndex === null) return
     setDraggedIndex(null)
     const order = categories.map(c => c.id)
-    await updateFilterOrder(order, settingsTab)
+    const currentType = activeMenu === 'retail' ? 'retail' : 'template'
+    await updateFilterOrder(order, currentType)
     // refreshData sẽ được gọi tự động nếu cần, nhưng ở đây chúng ta đã có state local đúng rồi
   }
 
@@ -260,6 +266,15 @@ export default function AdminPage() {
       })
     })
 
+  const isRetail = activeMenu === 'retail'
+  const isDesign = activeMenu === 'designs'
+  const isFilterTab = (isDesign && designTab === 'filters') || (isRetail && retailTab === 'filters')
+  const isCategoryTab = isRetail && retailTab === 'categories'
+  const isProductTab = !isFilterTab && !isCategoryTab
+  const retailCategoryOptions = shopCategories.length > 0
+    ? shopCategories.map((c: any) => c.name)
+    : ['Phụ kiện', 'Thiệp mời', 'Quà tặng']
+
   return (
     <div className="flex min-h-screen bg-[#f8fafc] font-sans text-slate-900">
       
@@ -286,12 +301,6 @@ export default function AdminPage() {
             onClick={() => setActiveTab('retail')} 
           />
           <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
-            <MenuItem 
-              icon={<Sliders size={20}/>} 
-              label="Cấu trúc bộ lọc" 
-              active={activeMenu === 'settings'} 
-              onClick={() => setActiveTab('settings')} 
-            />
             <MenuItem 
               icon={<ImageIcon size={20}/>} 
               label="Slide Banner" 
@@ -330,7 +339,6 @@ export default function AdminPage() {
             <h2 className="text-4xl font-black uppercase tracking-tight text-slate-900 leading-none">
               {activeMenu === 'designs' && "Mẫu thiết kế"}
               {activeMenu === 'retail' && "Ấn phẩm Shop"}
-              {activeMenu === 'settings' && "Cấu trúc bộ lọc"}
               {activeMenu === 'banners' && "Slide Banner"}
               {activeMenu === 'content' && "Nội dung trang"}
               {activeMenu === 'general' && "Cài đặt chung"}
@@ -338,7 +346,6 @@ export default function AdminPage() {
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 ml-1">
               {activeMenu === 'designs' && "Quản lý kho mẫu decor tiệc"}
               {activeMenu === 'retail' && "Quản lý sản phẩm bán lẻ"}
-              {activeMenu === 'settings' && "Tùy chỉnh các tiêu chí phân loại"}
               {activeMenu === 'banners' && "Ảnh bìa trình chiếu trang chủ"}
               {activeMenu === 'content' && "Dịch vụ, Quy trình & Phản hồi"}
               {activeMenu === 'general' && "Thông tin liên hệ & Thương hiệu"}
@@ -371,6 +378,164 @@ export default function AdminPage() {
         {/* CONTENT AREA */}
         {activeMenu === 'designs' || activeMenu === 'retail' ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex gap-4 p-1 bg-slate-100 rounded-2xl w-fit">
+              {isDesign && (
+                <>
+                  <button 
+                    onClick={() => setDesignTab('products')}
+                    className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${designTab === 'products' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Danh sách
+                  </button>
+                  <button 
+                    onClick={() => setDesignTab('filters')}
+                    className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${designTab === 'filters' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Cấu hình bộ lọc
+                  </button>
+                </>
+              )}
+              {isRetail && (
+                <>
+                  <button 
+                    onClick={() => setRetailTab('products')}
+                    className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${retailTab === 'products' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Danh sách
+                  </button>
+                  <button 
+                    onClick={() => setRetailTab('categories')}
+                    className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${retailTab === 'categories' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Danh mục
+                  </button>
+                  <button 
+                    onClick={() => setRetailTab('filters')}
+                    className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${retailTab === 'filters' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Cấu hình bộ lọc
+                  </button>
+                </>
+              )}
+            </div>
+
+            {isFilterTab && (
+              <div className="space-y-10">
+                <div className="flex justify-between items-center">
+                  <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Danh sách các loại bộ lọc động</p>
+                  <button 
+                    onClick={() => setIsAddingCategory(true)}
+                    className="text-indigo-600 font-black uppercase text-[10px] tracking-widest flex items-center gap-1 hover:underline"
+                  >
+                    <Plus size={14} /> Thêm loại mới
+                  </button>
+                </div>
+
+                {isAddingCategory && (
+                  <div className="bg-white border border-indigo-100 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4">
+                    <form onSubmit={handleAddCategory} className="flex gap-3">
+                      <input name="catName" placeholder="Tên loại bộ lọc mới..." autoFocus className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 ring-indigo-500/20" />
+                      <button type="submit" className="bg-indigo-600 text-white px-6 rounded-xl font-black uppercase text-[10px] tracking-widest">Lưu</button>
+                      <button type="button" onClick={() => setIsAddingCategory(false)} className="bg-slate-100 text-slate-400 px-4 rounded-xl"><X size={18}/></button>
+                    </form>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {categories.map((cat, index) => (
+                    <div 
+                      key={cat.id}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      className={`transition-all ${draggedIndex === index ? 'opacity-40 scale-95' : 'opacity-100'}`}
+                    >
+                      <FilterBox 
+                        cat={cat} 
+                        items={filters.filter(f => f.category === cat.id && f.type === (isRetail ? 'retail' : 'template'))} 
+                        onAdd={async (formData: FormData) => { 
+                          formData.append('type', isRetail ? 'retail' : 'template');
+                          await addFilterOption(formData); 
+                          refreshData(); 
+                        }}
+                        onDelete={async (id: string) => { if(confirm('Xóa?')){ await deleteFilterOption(id); refreshData(); }}}
+                        onDeleteCategory={async (id: string) => { if(confirm(`Xóa toàn bộ loại bộ lọc "${cat.label}"?`)){ await deleteCategory(id, isRetail ? 'retail' : 'template'); refreshData(); }}}
+                        onUpdateItem={async (id: string, val: string) => { await updateFilterOption(id, val); refreshData(); }}
+                        onRenameCategory={async (oldId: string, newLabel: string) => { await renameCategory(oldId, newLabel, isRetail ? 'retail' : 'template'); refreshData(); }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isCategoryTab && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                  <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Danh sách danh mục ấn phẩm</p>
+                  <button 
+                    onClick={() => setIsAddingCategory(true)}
+                    className="text-indigo-600 font-black uppercase text-[10px] tracking-widest flex items-center gap-1 hover:underline"
+                  >
+                    <Plus size={14} /> Thêm danh mục
+                  </button>
+                </div>
+
+                {isAddingCategory && (
+                  <div className="bg-white border border-indigo-100 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4">
+                    <form onSubmit={async (e) => { 
+                      e.preventDefault(); 
+                      const formData = new FormData(e.currentTarget); 
+                      const name = formData.get('catName') as string; 
+                      await addShopCategory(name); 
+                      setIsAddingCategory(false); 
+                      refreshData(); 
+                    }} className="flex gap-3">
+                      <input name="catName" placeholder="Tên danh mục mới..." autoFocus className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 ring-indigo-500/20" />
+                      <button type="submit" className="bg-indigo-600 text-white px-6 rounded-xl font-black uppercase text-[10px] tracking-widest">Lưu</button>
+                      <button type="button" onClick={() => setIsAddingCategory(false)} className="bg-slate-100 text-slate-400 px-4 rounded-xl"><X size={18}/></button>
+                    </form>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {shopCategories.map((cat: any) => (
+                    <div key={cat.id} className="bg-white border border-slate-100 rounded-[2rem] p-6 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="font-black uppercase tracking-widest text-[10px] text-slate-400">Danh mục</p>
+                        <p className="font-black text-slate-800">{cat.name}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            const newName = prompt('Đổi tên danh mục', cat.name)
+                            if (!newName) return
+                            await updateShopCategory(cat.id, newName)
+                            refreshData()
+                          }}
+                          className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Xóa danh mục này?')) return
+                            await deleteShopCategory(cat.id)
+                            refreshData()
+                          }}
+                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {isProductTab && (
+            <>
             {/* SEARCH & DYNAMIC FILTERS & VIEW CONTROLS */}
             <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
               <div className="flex flex-col md:flex-row gap-6 items-center">
@@ -515,71 +680,8 @@ export default function AdminPage() {
                 <p className="font-bold uppercase text-xs tracking-widest opacity-40">Không tìm thấy kết quả phù hợp</p>
               </div>
             )}
-          </div>
-        ) : activeMenu === 'settings' ? (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4">
-            {/* Tabs cho Settings */}
-            <div className="flex gap-4 p-1 bg-slate-100 rounded-2xl w-fit">
-              <button 
-                onClick={() => setSettingsTab('template')}
-                className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${settingsTab === 'template' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                Bộ lọc Mẫu thiết kế
-              </button>
-              <button 
-                onClick={() => setSettingsTab('retail')}
-                className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${settingsTab === 'retail' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                Bộ lọc Ấn phẩm
-              </button>
-            </div>
-
-             <div className="flex justify-between items-center">
-                <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">Danh sách các loại bộ lọc động</p>
-                <button 
-                  onClick={() => setIsAddingCategory(true)}
-                  className="text-indigo-600 font-black uppercase text-[10px] tracking-widest flex items-center gap-1 hover:underline"
-                >
-                  <Plus size={14} /> Thêm loại mới
-                </button>
-             </div>
-
-             {isAddingCategory && (
-                <div className="bg-white border border-indigo-100 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4">
-                  <form onSubmit={handleAddCategory} className="flex gap-3">
-                    <input name="catName" placeholder="Tên loại bộ lọc mới..." autoFocus className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 ring-indigo-500/20" />
-                    <button type="submit" className="bg-indigo-600 text-white px-6 rounded-xl font-black uppercase text-[10px] tracking-widest">Lưu</button>
-                    <button type="button" onClick={() => setIsAddingCategory(false)} className="bg-slate-100 text-slate-400 px-4 rounded-xl"><X size={18}/></button>
-                  </form>
-                </div>
-             )}
-
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {categories.map((cat, index) => (
-                  <div 
-                    key={cat.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={`transition-all ${draggedIndex === index ? 'opacity-40 scale-95' : 'opacity-100'}`}
-                  >
-                    <FilterBox 
-                      cat={cat} 
-                      items={filters.filter(f => f.category === cat.id && f.type === settingsTab)} 
-                      onAdd={async (formData: FormData) => { 
-                        formData.append('type', settingsTab);
-                        await addFilterOption(formData); 
-                        refreshData(); 
-                      }}
-                      onDelete={async (id: string) => { if(confirm('Xóa?')){ await deleteFilterOption(id); refreshData(); }}}
-                      onDeleteCategory={async (id: string) => { if(confirm(`Xóa toàn bộ loại bộ lọc "${cat.label}"?`)){ await deleteCategory(id, settingsTab); refreshData(); }}}
-                      onUpdateItem={async (id: string, val: string) => { await updateFilterOption(id, val); refreshData(); }}
-                      onRenameCategory={async (oldId: string, newLabel: string) => { await renameCategory(oldId, newLabel, settingsTab); refreshData(); }}
-                    />
-                  </div>
-                ))}
-             </div>
+            </>
+            )}
           </div>
         ) : activeMenu === 'content' ? (
           <div className="space-y-12 animate-in fade-in duration-500 pb-20">
@@ -1130,6 +1232,31 @@ export default function AdminPage() {
                   )}
                   {activeMenu === 'retail' && (
                     <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-1">Danh mục</label>
+                      <select
+                        name="category"
+                        defaultValue={editingProduct?.category || retailCategoryOptions[0]}
+                        className="w-full p-5 bg-slate-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-4 ring-indigo-500/5 transition-all font-bold text-sm"
+                      >
+                        {retailCategoryOptions.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {activeMenu === 'retail' && (
+                    <label className="flex items-center gap-3 text-xs font-bold text-slate-600">
+                      <input
+                        type="checkbox"
+                        name="stock"
+                        defaultChecked={editingProduct?.stock ?? true}
+                        className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      Còn hàng
+                    </label>
+                  )}
+                  {activeMenu === 'retail' && (
+                    <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-1">Mô tả sản phẩm</label>
                       <textarea name="description" defaultValue={editingProduct?.description} rows={5} className="w-full p-5 bg-slate-50 border-none rounded-[2rem] outline-none focus:bg-white focus:ring-4 ring-indigo-500/5 transition-all font-bold text-sm resize-none" placeholder="Chất liệu, kích thước, quy cách đóng gói..."></textarea>
                     </div>
@@ -1256,7 +1383,6 @@ function MultiSelectField({ label, name, options, defaultValue = "" }: { label: 
         ))}
         {options.length === 0 && <span className="text-[10px] font-bold text-slate-300 italic">Chưa có dữ liệu bộ lọc...</span>}
       </div>
-      {/* Hidden input to ensure field is always sent even if no checkboxes are checked */}
       <input type="hidden" name={`_exists_${name}`} value="true" />
     </div>
   )
@@ -1417,6 +1543,19 @@ function ProductCard({ item, activeMenu, onDelete, onEdit }: any) {
           </div>
         )}
         <h3 className="font-bold text-xs tracking-tight line-clamp-2 leading-relaxed text-slate-700">{item.name}</h3>
+        {activeMenu === 'retail' && (
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-indigo-600 font-black text-sm">{item.price?.toLocaleString()}đ</span>
+            <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${item.stock ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+              {item.stock ? 'Còn hàng' : 'Hết hàng'}
+            </span>
+          </div>
+        )}
+        {activeMenu === 'retail' && item.category && (
+          <div className="pt-1 text-[9px] font-black uppercase text-slate-400">
+            {item.category}
+          </div>
+        )}
         <div className="flex flex-wrap gap-1 pt-2">
           {tags.slice(0, 3).map((tag, idx) => (
             <span key={idx} className="px-2 py-1 bg-slate-50 text-[9px] font-black uppercase rounded-lg text-slate-400">{tag.label}</span>

@@ -165,7 +165,7 @@ export async function updateFilterOrder(categories: string[], type: string) {
 export async function getAllAdminData() {
   console.log("--- ĐANG LẤY DỮ LIỆU ADMIN ---")
   try {
-    const [filters, products, settings, banners, services, processSteps, testimonials] = await Promise.all([
+    const [filters, products, settings, banners, services, processSteps, testimonials, initialShopCategories] = await Promise.all([
       prisma.filterOption.findMany({ 
         orderBy: [
           { order: 'asc' },
@@ -181,7 +181,8 @@ export async function getAllAdminData() {
       }),
       prisma.service.findMany({ orderBy: { order: 'asc' } }),
       prisma.processStep.findMany({ orderBy: { order: 'asc' } }),
-      prisma.testimonial.findMany({ orderBy: { order: 'asc' } })
+      prisma.testimonial.findMany({ orderBy: { order: 'asc' } }),
+      prisma.shopCategory.findMany({ orderBy: { order: 'asc' } })
     ])
     console.log("--- LẤY DỮ LIỆU THÀNH CÔNG ---")
 
@@ -190,6 +191,18 @@ export async function getAllAdminData() {
       settingsMap[s.key] = s.value
     })
 
+    let shopCategories = initialShopCategories
+    if (shopCategories.length === 0) {
+      await prisma.shopCategory.createMany({
+        data: [
+          { name: 'Phụ kiện', order: 0 },
+          { name: 'Thiệp mời', order: 1 },
+          { name: 'Quà tặng', order: 2 }
+        ]
+      })
+      shopCategories = await prisma.shopCategory.findMany({ orderBy: { order: 'asc' } })
+    }
+
     return {
       filters,
       products,
@@ -197,12 +210,58 @@ export async function getAllAdminData() {
       banners,
       services,
       processSteps,
-      testimonials
+      testimonials,
+      shopCategories
     }
   } catch (error) {
     console.error("--- LỖI KHI LẤY DỮ LIỆU ADMIN:", error)
     throw error
   }
+}
+
+export async function getShopCategories() {
+  return await prisma.shopCategory.findMany({ orderBy: { order: 'asc' } })
+}
+
+export async function addShopCategory(name: string) {
+  const order = await prisma.shopCategory.count()
+  await prisma.shopCategory.create({
+    data: {
+      name,
+      order
+    }
+  })
+  revalidatePath('/admin')
+}
+
+export async function updateShopCategory(id: string, name: string) {
+  const existing = await prisma.shopCategory.findUnique({ where: { id } })
+  if (!existing) return
+  await prisma.$transaction([
+    prisma.shopCategory.update({
+      where: { id },
+      data: { name }
+    }),
+    prisma.product.updateMany({
+      where: { category: existing.name },
+      data: { category: name }
+    })
+  ])
+  revalidatePath('/admin')
+  revalidatePath('/')
+}
+
+export async function deleteShopCategory(id: string) {
+  const existing = await prisma.shopCategory.findUnique({ where: { id } })
+  await prisma.shopCategory.delete({ where: { id } })
+  if (existing) {
+    await prisma.product.updateMany({
+      where: { category: existing.name },
+      data: { category: null }
+    })
+  }
+  revalidatePath('/admin')
+  revalidatePath('/')
 }
 
 export async function getFilters() {
@@ -219,6 +278,9 @@ export async function addProduct(formData: FormData) {
   const type = formData.get('type') as string // 'template' hoặc 'retail'
   const file = formData.get('file') as File
   const imageUrl = await saveImage(file)
+  const price = parseInt(formData.get('price') as string) || 0
+  const category = (formData.get('category') as string) || null
+  const stock = formData.has('stock') ? formData.get('stock') === 'on' : true
 
   // Lấy tất cả các filter categories hiện có cho type này
   const allFilters = await prisma.filterOption.findMany({
@@ -250,9 +312,10 @@ export async function addProduct(formData: FormData) {
         code: code,
         type: type,
         imageUrl: imageUrl,
-        price: parseFloat(formData.get('price') as string) || 0,
+        price: price,
         description: formData.get('description') as string || "",
-        category: type,
+        category: category,
+        stock: stock,
         filterData: JSON.stringify(filterData)
       }
     })
@@ -276,6 +339,9 @@ export async function updateProduct(formData: FormData) {
   const id = formData.get('id') as string
   const type = formData.get('type') as string
   const file = formData.get('file') as File
+  const price = parseInt(formData.get('price') as string) || 0
+  const category = (formData.get('category') as string) || null
+  const stock = formData.has('stock') ? formData.get('stock') === 'on' : true
   
   let imageUrl = formData.get('currentImageUrl') as string
   if (file && file.size > 0) {
@@ -306,8 +372,10 @@ export async function updateProduct(formData: FormData) {
         code: formData.get('code') as string || undefined,
         type: type,
         imageUrl: imageUrl,
-        price: parseFloat(formData.get('price') as string) || 0,
+        price: price,
         description: formData.get('description') as string || "",
+        category: category,
+        stock: stock,
         filterData: JSON.stringify(filterData)
       }
     })
