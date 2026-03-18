@@ -323,9 +323,12 @@ export default function AdminPage() {
         </nav>
 
         <div className="p-6">
+          <a href="/" target="_blank" className="flex items-center justify-center gap-2 w-full bg-slate-900 hover:bg-indigo-600 text-white p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all mb-4 shadow-lg">
+            <Globe size={16} /> Xem trang chủ
+          </a>
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Local System Online</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Hệ thống đang hoạt động</span>
           </div>
         </div>
       </aside>
@@ -408,12 +411,6 @@ export default function AdminPage() {
                     className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${retailTab === 'categories' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                   >
                     Danh mục
-                  </button>
-                  <button 
-                    onClick={() => setRetailTab('filters')}
-                    className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${retailTab === 'filters' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    Cấu hình bộ lọc
                   </button>
                 </>
               )}
